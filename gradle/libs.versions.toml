@@ -1,0 +1,13 @@
+[versions]
+kotlin = "1.8.10"
+intellij = "1.17.3"
+foojayResolver = "0.5.0"
+
+[libraries]
+# Примеры сторонних зависимостей
+coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version = "1.7.3" }
+
+[plugins]
+kotlin = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+intellij = { id = "org.jetbrains.intellij", version.ref = "intellij" }
+foojayResolver = { id = "org.gradle.toolchains.foojay-resolver-convention", version.ref = "foojayResolver" }

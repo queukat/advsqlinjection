@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="com.example.advsqlinjection.settings.AdvancedSQLInjectionSettingsState">
+    <option name="caseInsensitivePrefix" value="true" />
+    <option name="injectAllOccurrences" value="true" />
+    <option name="prefixLanguagePatterns">
+      <list>
+        <option value="sql=SparkSQL=*.txt" />
+        <option value="|=Oracle=*.yaml" />
+      </list>
+    </option>
+  </component>
+  <component name="com.queukat.advsqlinjection.settings.AdvancedSQLInjectionSettingsState">
+    <option name="injectAllOccurrences" value="true" />
+    <option name="prefixLanguagePatterns">
+      <list>
+        <option value="|=GenericSQL=*.yaml" />
+        <option value="sql=GenericSQL=*.txt" />
+      </list>
+    </option>
+  </component>
+</project>
