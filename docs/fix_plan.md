@@ -86,6 +86,12 @@
   Files: `.github/workflows/ci.yml`, `.github/workflows/release.yml`, `build.gradle.kts`, `README.md`
   Verification: Re-read the workflow files and ran local Gradle checks to confirm the referenced tasks exist and pass in the current workspace.
   Notes: Marketplace publishing remains conditional on the required GitHub secrets being configured in the repository settings.
+- Status: done
+  Problem: GitHub Releases used auto-generated notes while JetBrains Marketplace change notes lived separately in Gradle, which forced duplicated release messaging.
+  Fix: Added a root `CHANGELOG.md` as the single source of truth, taught Gradle to read the current version section for `patchPluginXml.changeNotes`, and updated the release workflow to publish the same section as the GitHub Release body.
+  Files: `CHANGELOG.md`, `build.gradle.kts`, `.github/workflows/release.yml`, `README.md`
+  Verification: Generated local release notes from the changelog and verified that the referenced Gradle tasks still pass.
+  Notes: The workflow appends a full changelog link after the curated notes, so the release stays readable without losing history navigation.
 
 ## Verification summary
 - Revalidated current source structure and main audit claims against repository code.

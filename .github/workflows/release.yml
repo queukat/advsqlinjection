@@ -59,13 +59,17 @@ jobs:
             exit 1
           fi
 
-      - name: Build and verify release artifact
-        run: ./gradlew test buildPlugin verifyPlugin runPluginVerifier --console=plain
+      - name: Build, verify, and prepare release notes
+        run: ./gradlew writeReleaseNotes test buildPlugin verifyPlugin runPluginVerifier --console=plain
 
       - name: Generate SHA256 checksums
         shell: bash
         run: |
           sha256sum build/distributions/*.zip > build/distributions/SHA256SUMS.txt
+          {
+            echo
+            echo "Full Changelog: https://github.com/${GITHUB_REPOSITORY}/commits/${GITHUB_REF_NAME}"
+          } >> build/release-notes.md
 
       - name: Upload verifier reports
         if: always()
@@ -81,7 +85,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           name: Advanced Language Injection ${{ steps.version.outputs.version }}
-          generate_release_notes: true
+          body_path: build/release-notes.md
           files: |
             build/distributions/*.zip
             build/distributions/SHA256SUMS.txt

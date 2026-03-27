@@ -82,6 +82,7 @@ query: "sql:select * from users where active = true"
 - CI runs `test`, `buildPlugin`, and `verifyPlugin`, then uploads the built plugin ZIP as an artifact.
 - GitHub Releases are created from tags like `v1.1.0` via [`release.yml`](.github/workflows/release.yml).
 - Release builds also run `runPluginVerifier`, attach the ZIP and `SHA256SUMS.txt`, and optionally publish to JetBrains Marketplace if the required secrets are configured.
+- `CHANGELOG.md` is the single source of truth for release notes. The release workflow uses it for GitHub Releases, and `patchPluginXml` uses the same version section for JetBrains Marketplace change notes.
 
 ### Required GitHub secrets for Marketplace publishing
 
