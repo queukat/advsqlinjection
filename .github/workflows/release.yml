@@ -1,0 +1,95 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+env:
+  CERTIFICATE_CHAIN: ${{ secrets.CERTIFICATE_CHAIN }}
+  PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
+  PRIVATE_KEY_PASSWORD: ${{ secrets.PRIVATE_KEY_PASSWORD }}
+  PUBLISH_TOKEN: ${{ secrets.PUBLISH_TOKEN }}
+
+jobs:
+  release:
+    name: Build and Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out sources
+        uses: actions/checkout@v4
+
+      - name: Validate Gradle wrapper
+        uses: gradle/actions/wrapper-validation@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Gradle cache
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Make Gradle wrapper executable
+        run: chmod +x gradlew
+
+      - name: Resolve release version
+        id: version
+        shell: bash
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Verify tag matches build.gradle.kts
+        shell: bash
+        run: |
+          GRADLE_VERSION="$(sed -n 's/^version = "\(.*\)"/\1/p' build.gradle.kts)"
+          if [ -z "${GRADLE_VERSION}" ]; then
+            echo "Could not resolve project version from build.gradle.kts" >&2
+            exit 1
+          fi
+
+          if [ "${GRADLE_VERSION}" != "${{ steps.version.outputs.version }}" ]; then
+            echo "Tag version v${{ steps.version.outputs.version }} does not match build.gradle.kts version ${GRADLE_VERSION}" >&2
+            exit 1
+          fi
+
+      - name: Build and verify release artifact
+        run: ./gradlew test buildPlugin verifyPlugin runPluginVerifier --console=plain
+
+      - name: Generate SHA256 checksums
+        shell: bash
+        run: |
+          sha256sum build/distributions/*.zip > build/distributions/SHA256SUMS.txt
+
+      - name: Upload verifier reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: plugin-verifier-report-${{ steps.version.outputs.version }}
+          path: |
+            build/reports/**
+            build/pluginVerifier/**
+          if-no-files-found: warn
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Advanced Language Injection ${{ steps.version.outputs.version }}
+          generate_release_notes: true
+          files: |
+            build/distributions/*.zip
+            build/distributions/SHA256SUMS.txt
+
+      - name: Publish to JetBrains Marketplace
+        if: ${{ env.PUBLISH_TOKEN != '' && env.CERTIFICATE_CHAIN != '' && env.PRIVATE_KEY != '' && env.PRIVATE_KEY_PASSWORD != '' }}
+        run: ./gradlew publishPlugin --console=plain
+
+      - name: Marketplace publish skipped
+        if: ${{ !(env.PUBLISH_TOKEN != '' && env.CERTIFICATE_CHAIN != '' && env.PRIVATE_KEY != '' && env.PRIVATE_KEY_PASSWORD != '') }}
+        run: echo "Marketplace publish skipped because one or more required secrets are missing."

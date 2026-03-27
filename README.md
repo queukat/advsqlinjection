@@ -1,5 +1,9 @@
 # Advanced Language Injection
 
+[![JetBrains Marketplace](https://img.shields.io/jetbrains/plugin/v/29252)](https://plugins.jetbrains.com/plugin/29252-advanced-language-injection)
+[![Downloads](https://img.shields.io/jetbrains/plugin/d/29252)](https://plugins.jetbrains.com/plugin/29252-advanced-language-injection)
+[![Rating](https://img.shields.io/jetbrains/plugin/r/stars/29252)](https://plugins.jetbrains.com/plugin/29252-advanced-language-injection)
+
 Advanced Language Injection is a JetBrains plugin for projects that keep SQL or other DSL snippets inside structured configuration values such as YAML, JSON, or Properties files.
 
 The plugin lets you define ordered rules that:
@@ -71,6 +75,20 @@ query: "sql:select * from users where active = true"
 - `./gradlew.bat buildPlugin --console=plain`
 - `./gradlew.bat verifyPlugin --console=plain`
 - `./gradlew.bat runPluginVerifier --console=plain`
+
+## CI and release automation
+
+- GitHub Actions CI runs on every push to `main` and on pull requests via [`ci.yml`](.github/workflows/ci.yml).
+- CI runs `test`, `buildPlugin`, and `verifyPlugin`, then uploads the built plugin ZIP as an artifact.
+- GitHub Releases are created from tags like `v1.1.0` via [`release.yml`](.github/workflows/release.yml).
+- Release builds also run `runPluginVerifier`, attach the ZIP and `SHA256SUMS.txt`, and optionally publish to JetBrains Marketplace if the required secrets are configured.
+
+### Required GitHub secrets for Marketplace publishing
+
+- `PUBLISH_TOKEN`
+- `CERTIFICATE_CHAIN`
+- `PRIVATE_KEY`
+- `PRIVATE_KEY_PASSWORD`
 
 ## Localization
 

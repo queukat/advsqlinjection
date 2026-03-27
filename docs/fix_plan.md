@@ -80,6 +80,12 @@
   Files: `src/main/resources/META-INF/plugin.xml`
   Verification: Re-read the descriptor after the edit to confirm the description is now single-language.
   Notes: This change affects the plugin description surface only; `message_ru.properties` stays because it is used for locale-specific UI messages.
+- Status: done
+  Problem: The repository had no CI or release automation, so build health and tagged releases depended on manual local steps.
+  Fix: Added GitHub Actions workflows for CI and tag-based releases, wired Gradle signing/publishing to environment-backed secrets, and documented the release secrets plus Marketplace badges in the README.
+  Files: `.github/workflows/ci.yml`, `.github/workflows/release.yml`, `build.gradle.kts`, `README.md`
+  Verification: Re-read the workflow files and ran local Gradle checks to confirm the referenced tasks exist and pass in the current workspace.
+  Notes: Marketplace publishing remains conditional on the required GitHub secrets being configured in the repository settings.
 
 ## Verification summary
 - Revalidated current source structure and main audit claims against repository code.
