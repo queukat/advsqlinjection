@@ -1,7 +1,7 @@
 <idea-plugin>
     <id>com.queukat.advsqlinjection</id>
-    <name>Advanced SQL Injection</name>
-    <version>1.0.0</version>
+    <name>Advanced Language Injection</name>
+    <version>1.1.0</version>
 
     <idea-version since-build="223.7571.182" />
 
@@ -9,30 +9,17 @@
 
     <description>
         <![CDATA[
-        <p><strong>English:</strong><br/>
-        This plugin demonstrates advanced SQL (or any other) language injection in YAML and other structured files
-        using directory- or prefix-based rules. It supports dynamic language selection from all registered IDE languages
-        and provides i18n for both UI and messages. Settings UI is implemented using Kotlin UI DSL.</p>
+        <p>Advanced Language Injection adds configurable language injection to YAML, JSON, Properties, and other structured
+        values that support IntelliJ language injection hosts. Rules are ordered, can target file names or file paths,
+        support any registered IDE language, and can match prefixes either at the start of a value or anywhere inside it.</p>
 
         <p><strong>Important:</strong><br/>
         Injection works only in file types whose PSI elements support language injection (for example YAML, JSON, Properties
         and many other code / config formats). Plain text files (<code>*.txt</code>) are <strong>not</strong> supported,
         because IntelliJ Platform does not provide language injection hosts for them.</p>
-
-        <p><strong>Русский:</strong><br/>
-        Этот плагин демонстрирует расширенные возможности внедрения SQL (или любого другого языка)
-        в YAML и другие структурированные файлы с использованием правил на основе директорий или префиксов,
-        поддерживает динамический выбор языка из всех языков, зарегистрированных в IDE, а также включает
-        локализацию интерфейса и сообщений. Окно настроек реализовано на Kotlin UI DSL.</p>
-
-        <p><strong>Важно:</strong><br/>
-        Внедрение работает только в типах файлов, чьи PSI-элементы поддерживают language injection
-        (например YAML, JSON, Properties и многие другие форматы кода и конфигураций).
-        Обычные текстовые файлы (<code>*.txt</code>) <strong>не</strong> поддерживаются, так как платформа IntelliJ
-        не предоставляет для них host-элементы для внедрения.</p>
         ]]>
     </description>
-    <vendor></vendor>
+    <vendor>queukat</vendor>
 
     <resource-bundle>message</resource-bundle>
 
@@ -42,7 +29,7 @@
         <projectConfigurable
                 id="com.queukat.advsqlinjection.settings"
                 instance="com.queukat.advsqlinjection.settings.AdvancedSQLInjectionSettingsConfigurable"
-                displayName="Advanced SQL Injection"
+                displayName="Advanced Language Injection"
                 nonDefaultProject="true"/>
     </extensions>
 

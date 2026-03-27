@@ -1,5 +1,7 @@
 package com.queukat.advsqlinjection.settings
 
+import com.queukat.advsqlinjection.model.InjectionRule
+import com.queukat.advsqlinjection.model.LegacyRuleMigration
 import com.intellij.openapi.components.PersistentStateComponent
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.State
@@ -16,6 +18,7 @@ class AdvancedSQLInjectionSettingsState :
 
     class State {
         var sqlInjectionEnabled: Boolean = true
+        var rules: MutableList<InjectionRule> = mutableListOf()
         var prefixLanguagePatterns: MutableList<String> = mutableListOf()
         var injectAllOccurrences: Boolean = false
         var caseInsensitivePrefix: Boolean = false
@@ -27,6 +30,21 @@ class AdvancedSQLInjectionSettingsState :
 
     override fun loadState(state: State) {
         myState = state
+        migrateLegacyRulesIfNeeded()
+        normalizeRules()
+    }
+
+    private fun migrateLegacyRulesIfNeeded() {
+        if (myState.rules.isEmpty() && myState.prefixLanguagePatterns.isNotEmpty()) {
+            myState.rules = LegacyRuleMigration.migrate(myState.prefixLanguagePatterns).toMutableList()
+        }
+        myState.prefixLanguagePatterns = mutableListOf()
+    }
+
+    private fun normalizeRules() {
+        myState.rules = myState.rules
+            .map(InjectionRule::normalized)
+            .toMutableList()
     }
 
     companion object {

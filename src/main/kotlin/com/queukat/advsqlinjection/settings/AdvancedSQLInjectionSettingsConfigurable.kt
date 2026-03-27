@@ -2,17 +2,22 @@ package com.queukat.advsqlinjection.settings
 
 import com.queukat.advsqlinjection.messages.AdvancedSqlInjectionBundle
 import com.intellij.openapi.options.Configurable
+import com.intellij.openapi.options.SearchableConfigurable
 import com.intellij.openapi.project.Project
 import javax.swing.JComponent
 
 class AdvancedSQLInjectionSettingsConfigurable(
     private val project: Project
-) : Configurable {
+) : SearchableConfigurable {
 
     private var settingsPanel: AdvancedSQLInjectionSettingsPanel? = null
 
     override fun getDisplayName(): String =
         AdvancedSqlInjectionBundle.message("msg.AdvancedSqlInjection.settingsTitle")
+
+    override fun getId(): String = "com.queukat.advsqlinjection.settings"
+
+    override fun enableSearch(option: String?): Runnable? = null
 
     override fun createComponent(): JComponent {
         val panel = AdvancedSQLInjectionSettingsPanel(project)

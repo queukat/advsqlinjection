@@ -1,22 +1,46 @@
-# Advanced SQL Injection
+# Advanced Language Injection
 
-IntelliJ IDEA plugin that demonstrates advanced language injection for SQL or any other language inside YAML and other structured files, based on configurable prefix rules and file name patterns.
+Advanced Language Injection is a JetBrains plugin for projects that keep SQL or other DSL snippets inside structured configuration values such as YAML, JSON, or Properties files.
 
-## Features
+The plugin lets you define ordered rules that:
+- choose any registered IDE language
+- match by file name or file path
+- match prefixes either at the start of a value or anywhere inside it
+- inject one or several non-overlapping segments inside the matched value
 
-- Prefix based injection rules of the form `prefix=LANG_ID=glob`
-- Supports any language registered in the IDE, not only SQL
-- Per project settings, stored separately for each project
-- Optional case insensitive prefix search
-- Option to inject only the first occurrence or all occurrences within a literal
-- UI for managing rules, built with Kotlin UI DSL
-- Internationalized messages and settings (English and Russian)
+## First useful setup
 
-## Requirements
+1. Open project settings and search for `Advanced Language Injection`.
+2. Add an example rule or create a rule manually.
+3. Start with a safe rule:
+   - Prefix: `sql:`
+   - Language: `SQL`
+   - File pattern: `*.yaml`
+   - Path pattern: `config/**/*.yaml`
+   - Match scope: `File name + path`
+   - Prefix target: `Value starts with prefix`
+4. Open a matching file and use `Preview current file` to confirm the rule matches the current editor file.
 
-- IntelliJ IDEA 2022.3 or compatible IDE on the IntelliJ Platform
-- Java 17
-- Tested with the `java` and `yaml` bundled plugins enabled
+Example YAML value:
+
+```yaml
+query: "sql:select * from users where active = true"
+```
+
+## Supported use cases
+
+- SQL embedded in YAML/JSON configuration
+- Regex, GraphQL, or other IDE languages embedded in structured values
+- Teams with path-based conventions such as `config/**/*.yaml` or `queries/**/*.json`
+
+## Matching model
+
+- Rules are ordered; the first matching rule wins.
+- `File name only` ignores `Path pattern`.
+- `File name + path` checks both the full path and the project-relative path.
+- `Value starts with prefix` is the safer mode for structured config values.
+- `Value contains prefix` is kept for migrated legacy rules and broader matching scenarios.
+- `Inject every matched prefix segment` splits multiple prefix hits into non-overlapping injected ranges.
 
 ## Installation from source
 
@@ -24,92 +48,31 @@ IntelliJ IDEA plugin that demonstrates advanced language injection for SQL or an
 2. Build the plugin distribution archive:
 
    ```bash
-   ./gradlew buildPlugin
+   ./gradlew.bat buildPlugin --console=plain
    ```
 
-   The resulting zip file will be located under `build/distributions`.
+3. Install the generated ZIP from `build/distributions` using `Settings | Plugins | gear icon | Install Plugin from Disk`.
 
-3. In IntelliJ IDEA, open:
+## Known limitations
 
-   - `Settings` → `Plugins` → gear icon → `Install Plugin from Disk`.
-   - Select the generated zip file and restart the IDE when prompted.
+- Injection only works for PSI elements that support IntelliJ language injection hosts.
+- Plain text files such as `*.txt` are not supported.
+- Matching is value-oriented, not schema-aware. The plugin does not understand domain-specific YAML or JSON schemas.
+- Rule preview validates matching against the current file and its value hosts; it does not execute inspections for the injected language.
 
-## Usage
+## Compatibility
 
-### Opening settings
+- Built against IntelliJ IDEA 2022.3
+- Marketplace compatibility is limited to build line `223.*`
 
-After installation, open the plugin settings:
+## Development checks
 
-- `Settings` → `Advanced SQL Injection` (project level settings).
-
-There you will see:
-
-- A checkbox **Enable SQL injection in literals**.
-- A checkbox **Inject all occurrences**.
-- A checkbox **Case insensitive prefix**.
-- A list of rules in the **Prefix / language / pattern** group.
-
-### Rule format
-
-Each rule is stored as a single string in the following format:
-
-```text
-<prefix>=<LANG_ID>=<file_glob>
-```
-
-- `prefix` – text prefix inside a string literal that marks the start of the injected code.
-- `LANG_ID` – language identifier as known to IntelliJ IDEA, for example `SQL`, `PostgreSQL`, `JSON`, `XML`.
-- `file_glob` – file name pattern where this rule is active, for example `*.yaml` or `*Config.json`.
-
-The plugin converts the glob pattern to a regular expression and applies the rule only when the current file name matches the pattern.
-
-Rules are evaluated from the top of the list. The first rule that matches both the file and prefix wins.
-
-### Example
-
-Suppose you often store SQL queries in YAML files:
-
-```yaml
-queries:
-  listUsers: "sql:SELECT * FROM users WHERE id = :id"
-  searchUsers: "sql:SELECT * FROM users WHERE name ILIKE :name"
-```
-
-You can configure a rule:
-
-```text
-sql:=SQL=*.yaml
-```
-
-With this rule:
-
-- In `*.yaml` files, every string that contains `sql:` will get SQL injection applied to the part after the prefix.
-- The IDE will highlight and complete the query as SQL inside the string literal.
-
-### Multiple occurrences
-
-If **Inject all occurrences** is disabled, the plugin injects only the first occurrence of the prefix in a literal and then stops. If it is enabled, the injector scans the literal and applies injection to each found occurrence until the end of the text.
-
-### Case sensitivity
-
-If **Case insensitive prefix** is enabled, the search for the prefix uses case insensitive comparison. For example, with the rule `sql:=SQL=*.yaml`, the prefixes `sql:`, `Sql:` and `SQL:` will all be recognized.
-
-### Limitations
-
-The IntelliJ Platform allows language injection only in file types whose PSI elements support it. That means:
-
-- Works in many structured formats such as YAML, JSON, Properties and various configuration files.
-- Does not work in plain text files such as `*.txt`.
-
-## Development
-
-The project uses Gradle with the IntelliJ plugin and Kotlin:
-
-- Plugin id `com.queukat.advsqlinjection`
-- Plugin name `Advanced SQL Injection`
-- Group `com.queukat`
-- Version `1.0.0`
+- `./gradlew.bat test --console=plain`
+- `./gradlew.bat buildPlugin --console=plain`
+- `./gradlew.bat verifyPlugin --console=plain`
+- `./gradlew.bat runPluginVerifier --console=plain`
 
 ## Localization
 
-The plugin includes English and Russian resource bundles for its actions and settings. The IDE will choose the appropriate language based on the current UI language.
+- Runtime UI strings are localized through resource bundles.
+- The plugin descriptor and marketplace-style metadata are intentionally English-only to avoid duplicated bilingual descriptions being shown at the same time.
