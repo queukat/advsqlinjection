@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "com.queukat"
-version = "1.1.0"
+version = "1.1.1"
 
 val changelogFile = rootProject.file("CHANGELOG.md")
 
@@ -135,7 +135,8 @@ dependencies {
 intellij {
     pluginName.set("Advanced Language Injection")
     version.set("2022.3")
-    plugins.set(listOf("java", "yaml"))
+    plugins.set(listOf("java", "yaml", "properties"))
+    updateSinceUntilBuild.set(false)
 }
 
 java {
@@ -149,12 +150,15 @@ tasks {
     patchPluginXml {
         version.set(project.version.toString())
         sinceBuild.set("223.7571.182")
-        untilBuild.set("223.*")
         changeNotes.set(currentReleaseNotesHtml)
     }
 
     buildSearchableOptions {
         enabled = true
+    }
+
+    runPluginVerifier {
+        ideVersions.set(listOf("IC-2022.3.3"))
     }
 
     register("writeReleaseNotes") {
@@ -180,7 +184,7 @@ tasks {
 
     publishPlugin {
         dependsOn(signPlugin)
-        token.set(providers.environmentVariable("PUBLISH_TOKEN"))
+        token.set(providers.environmentVariable("PUBLISH_TOKEN_PLUGIN"))
         channels.set(listOf("default"))
     }
 }

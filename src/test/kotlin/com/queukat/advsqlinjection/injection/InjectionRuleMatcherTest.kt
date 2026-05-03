@@ -110,6 +110,30 @@ class InjectionRuleMatcherTest {
     }
 
     @Test
+    fun `structural prefix injects the whole value`() {
+        val rule = InjectionRule(
+            prefix = "snippet: |",
+            languageId = "SQL",
+            filePattern = "*.yaml",
+            targetType = RuleTargetType.VALUE_STARTS_WITH_PREFIX
+        )
+
+        val ranges = InjectionRuleMatcher.findRanges(
+            rawRule = rule,
+            input = RuleMatchInput(
+                valueText = "select * from users",
+                fileName = "queries.yaml",
+                fullPath = "/repo/queries.yaml",
+                structuralPrefixes = listOf("snippet: |")
+            ),
+            caseInsensitivePrefix = false,
+            injectAllOccurrences = false
+        )
+
+        assertEquals(listOf(RelativeMatchRange(0, 19)), ranges)
+    }
+
+    @Test
     fun `planner keeps first matching rule order`() {
         val rules = listOf(
             InjectionRule(prefix = "sql:", languageId = "SQL", filePattern = "*.yaml"),

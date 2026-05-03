@@ -10,13 +10,13 @@ class ShowWelcomeAction : AnAction() {
 
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project
-        if (AdvancedSQLInjectionHelp.openReadme(project)) {
+        if (AdvancedSQLInjectionHelp.openSetupGuide(project)) {
             return
         }
 
         Messages.showWarningDialog(
             project,
-            AdvancedSqlInjectionBundle.message("msg.AdvancedSqlInjection.readmeMissing"),
+            AdvancedSqlInjectionBundle.message("msg.AdvancedSqlInjection.setupGuideMissing"),
             AdvancedSqlInjectionBundle.message("msg.AdvancedSqlInjection.welcomeAction.title")
         )
     }

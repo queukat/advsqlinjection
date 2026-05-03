@@ -28,6 +28,17 @@ data class InjectionRule(
         )
 
     companion object {
+        fun emptyRule(): InjectionRule =
+            InjectionRule(
+                enabled = true,
+                prefix = "",
+                languageId = "",
+                filePattern = "*",
+                pathPattern = "",
+                scope = RuleScope.FILE_NAME_ONLY,
+                targetType = RuleTargetType.VALUE_STARTS_WITH_PREFIX
+            )
+
         fun exampleSqlRule(): InjectionRule =
             InjectionRule(
                 prefix = "sql:",

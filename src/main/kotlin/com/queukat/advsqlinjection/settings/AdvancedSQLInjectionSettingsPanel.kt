@@ -1,23 +1,12 @@
 package com.queukat.advsqlinjection.settings
 
-import com.queukat.advsqlinjection.injection.InjectionRuleMatcher
-import com.queukat.advsqlinjection.injection.RuleMatchInput
 import com.queukat.advsqlinjection.messages.AdvancedSqlInjectionBundle
 import com.queukat.advsqlinjection.model.InjectionRule
-import com.queukat.advsqlinjection.model.RuleScope
-import com.queukat.advsqlinjection.model.RuleTargetType
-import com.intellij.openapi.fileEditor.FileDocumentManager
-import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.DialogPanel
 import com.intellij.openapi.ui.Messages
-import com.intellij.psi.ElementManipulators
-import com.intellij.psi.PsiLanguageInjectionHost
-import com.intellij.psi.PsiManager
-import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.ui.ToolbarDecorator
 import com.intellij.ui.components.JBLabel
-import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.dsl.builder.AlignX
 import com.intellij.ui.dsl.builder.RowLayout
 import com.intellij.ui.dsl.builder.panel
@@ -28,11 +17,10 @@ import javax.swing.JComponent
 import javax.swing.JPanel
 import javax.swing.JTable
 import javax.swing.ListSelectionModel
-import javax.swing.table.AbstractTableModel
 
 class AdvancedSQLInjectionSettingsPanel(private val project: Project?) {
 
-    private val rulesTableModel = RulesTableModel()
+    private val rulesTableModel = AdvancedSQLInjectionRulesTableModel()
     private val rulesTable = JTable(rulesTableModel).apply {
         setSelectionMode(ListSelectionModel.SINGLE_SELECTION)
         fillsViewportHeight = true
@@ -52,17 +40,23 @@ class AdvancedSQLInjectionSettingsPanel(private val project: Project?) {
     private val addExampleButton = JButton(
         AdvancedSqlInjectionBundle.message("msg.AdvancedSqlInjection.addExampleButton")
     )
+    private val duplicateRuleButton = JButton(
+        AdvancedSqlInjectionBundle.message("msg.AdvancedSqlInjection.duplicateRuleButton")
+    )
     private val previewCurrentFileButton = JButton(
         AdvancedSqlInjectionBundle.message("msg.AdvancedSqlInjection.previewCurrentFileButton")
     )
-    private val openReadmeButton = JButton(
-        AdvancedSqlInjectionBundle.message("msg.AdvancedSqlInjection.openReadmeButton")
+    private val openSetupGuideButton = JButton(
+        AdvancedSqlInjectionBundle.message("msg.AdvancedSqlInjection.openSetupGuideButton")
     )
     private val emptyStateLabel = JBLabel(
         AdvancedSqlInjectionBundle.message("msg.AdvancedSqlInjection.emptyState")
     ).apply {
         border = JBUI.Borders.empty(4, 0, 0, 0)
     }
+    private val addRuleButton = JButton(
+        AdvancedSqlInjectionBundle.message("msg.AdvancedSqlInjection.addRuleButton")
+    )
 
     private val rulesPanel: JComponent = JPanel(BorderLayout()).apply {
         val decorator = ToolbarDecorator.createDecorator(rulesTable)
@@ -87,9 +81,11 @@ class AdvancedSQLInjectionSettingsPanel(private val project: Project?) {
             }.layout(RowLayout.PARENT_GRID)
             row { cell(emptyStateLabel) }
             row {
+                cell(addRuleButton)
                 cell(addExampleButton)
+                cell(duplicateRuleButton)
                 cell(previewCurrentFileButton)
-                cell(openReadmeButton)
+                cell(openSetupGuideButton)
             }
             row {
                 text(AdvancedSqlInjectionBundle.message("msg.AdvancedSqlInjection.rulesHelp"))
@@ -135,7 +131,7 @@ class AdvancedSQLInjectionSettingsPanel(private val project: Project?) {
         rulesTable.columnModel.getColumn(4).preferredWidth = 180
         rulesTable.columnModel.getColumn(5).preferredWidth = 100
         rulesTable.columnModel.getColumn(6).preferredWidth = 150
-        rulesTable.setDefaultRenderer(Any::class.java, RulesCellRenderer())
+        rulesTable.setDefaultRenderer(Any::class.java, AdvancedSQLInjectionRulesCellRenderer())
         rulesTable.setDefaultRenderer(
             java.lang.Boolean::class.java,
             rulesTable.getDefaultRenderer(java.lang.Boolean::class.java)
@@ -150,17 +146,23 @@ class AdvancedSQLInjectionSettingsPanel(private val project: Project?) {
     }
 
     private fun initButtons() {
+        addRuleButton.addActionListener {
+            openRuleDialog(null)?.let(::appendRule)
+        }
         addExampleButton.addActionListener {
             openRuleDialog(InjectionRule.exampleSqlRule())?.let(::appendRule)
+        }
+        duplicateRuleButton.addActionListener {
+            duplicateSelectedRule()
         }
         previewCurrentFileButton.addActionListener {
             previewSelectedRuleAgainstCurrentFile()
         }
-        openReadmeButton.addActionListener {
-            if (!AdvancedSQLInjectionHelp.openReadme(project)) {
+        openSetupGuideButton.addActionListener {
+            if (!AdvancedSQLInjectionHelp.openSetupGuide(project)) {
                 Messages.showWarningDialog(
                     panel,
-                    AdvancedSqlInjectionBundle.message("msg.AdvancedSqlInjection.readmeMissing"),
+                    AdvancedSqlInjectionBundle.message("msg.AdvancedSqlInjection.setupGuideMissing"),
                     AdvancedSqlInjectionBundle.message("msg.AdvancedSqlInjection.helpDialogTitle")
                 )
             }
@@ -170,6 +172,17 @@ class AdvancedSQLInjectionSettingsPanel(private val project: Project?) {
     private fun appendRule(rule: InjectionRule) {
         val rowIndex = rulesTableModel.addRule(rule)
         selectRow(rowIndex)
+        updateEmptyState()
+    }
+
+    private fun duplicateSelectedRule() {
+        val selectedRow = rulesTable.selectedRow
+        if (selectedRow < 0) {
+            return
+        }
+
+        val newIndex = rulesTableModel.duplicateRule(selectedRow) ?: return
+        selectRow(newIndex)
         updateEmptyState()
     }
 
@@ -224,91 +237,25 @@ class AdvancedSQLInjectionSettingsPanel(private val project: Project?) {
     private fun openRuleDialog(seedRule: InjectionRule?): InjectionRule? {
         val dialog = AdvancedSQLInjectionRuleDialog(
             project = project,
-            initialRule = seedRule?.copy() ?: InjectionRule.exampleSqlRule(),
+            initialRule = seedRule?.copy() ?: InjectionRule.emptyRule(),
             isEditMode = seedRule != null
         )
         return if (dialog.showAndGet()) dialog.buildRule() else null
     }
 
     private fun previewSelectedRuleAgainstCurrentFile() {
-        val project = project ?: run {
-            showPreviewMessage(AdvancedSqlInjectionBundle.message("msg.AdvancedSqlInjection.previewNoProject"))
-            return
-        }
         val selectedRule = rulesTableModel.ruleAt(rulesTable.selectedRow) ?: run {
             showPreviewMessage(AdvancedSqlInjectionBundle.message("msg.AdvancedSqlInjection.previewSelectRule"))
             return
         }
-
-        val editor = FileEditorManager.getInstance(project).selectedTextEditor ?: run {
-            showPreviewMessage(AdvancedSqlInjectionBundle.message("msg.AdvancedSqlInjection.previewNoEditor"))
-            return
-        }
-        val virtualFile = FileDocumentManager.getInstance().getFile(editor.document) ?: run {
-            showPreviewMessage(AdvancedSqlInjectionBundle.message("msg.AdvancedSqlInjection.previewNoEditor"))
-            return
-        }
-        val psiFile = PsiManager.getInstance(project).findFile(virtualFile) ?: run {
-            showPreviewMessage(AdvancedSqlInjectionBundle.message("msg.AdvancedSqlInjection.previewNoEditor"))
-            return
-        }
-
-        val fullPath = InjectionRuleMatcher.normalizePath(virtualFile.path)
-        val relativePath = InjectionRuleMatcher.toRelativePath(project.basePath, virtualFile.path)
-        val fileMatch = InjectionRuleMatcher.matchesFile(
-            selectedRule,
-            RuleMatchInput(valueText = "", fileName = virtualFile.name, fullPath = fullPath, relativePath = relativePath)
-        )
-
-        val hosts = PsiTreeUtil.collectElementsOfType(psiFile, PsiLanguageInjectionHost::class.java)
-        var matchedHosts = 0
-        var matchedSegments = 0
-        val previews = mutableListOf<String>()
-
-        hosts.forEach { host ->
-            val valueTextRange = ElementManipulators.getValueTextRange(host)
-            if (valueTextRange.startOffset >= valueTextRange.endOffset) {
-                return@forEach
-            }
-
-            val hostText = host.text
-            val valueText = hostText.substring(valueTextRange.startOffset, valueTextRange.endOffset)
-            val ranges = InjectionRuleMatcher.findRanges(
-                rawRule = selectedRule,
-                input = RuleMatchInput(
-                    valueText = valueText,
-                    fileName = virtualFile.name,
-                    fullPath = fullPath,
-                    relativePath = relativePath
-                ),
+        showPreviewMessage(
+            AdvancedSQLInjectionRulePreview.buildMessage(
+                project = project,
+                selectedRule = selectedRule,
                 caseInsensitivePrefix = caseInsensitivePrefixCheck.isSelected,
                 injectAllOccurrences = injectAllOccurrencesCheck.isSelected
             )
-
-            if (ranges.isNotEmpty()) {
-                matchedHosts++
-                matchedSegments += ranges.size
-                if (previews.size < 3) {
-                    previews += valueText.take(120).replace('\n', ' ')
-                }
-            }
-        }
-
-        val message = buildString {
-            appendLine(AdvancedSqlInjectionBundle.message("msg.AdvancedSqlInjection.previewFileHeader", virtualFile.path))
-            appendLine(AdvancedSqlInjectionBundle.message("msg.AdvancedSqlInjection.previewFileMatch", fileMatch))
-            appendLine(AdvancedSqlInjectionBundle.message("msg.AdvancedSqlInjection.previewHostMatchCount", matchedHosts))
-            appendLine(AdvancedSqlInjectionBundle.message("msg.AdvancedSqlInjection.previewSegmentMatchCount", matchedSegments))
-            if (previews.isNotEmpty()) {
-                appendLine()
-                appendLine(AdvancedSqlInjectionBundle.message("msg.AdvancedSqlInjection.previewExamplesHeader"))
-                previews.forEach { preview ->
-                    appendLine("- $preview")
-                }
-            }
-        }
-
-        showPreviewMessage(message)
+        )
     }
 
     private fun showPreviewMessage(message: String) {
@@ -329,136 +276,4 @@ class AdvancedSQLInjectionSettingsPanel(private val project: Project?) {
         emptyStateLabel.isVisible = rulesTableModel.rowCount == 0
     }
 
-    private inner class RulesCellRenderer : javax.swing.table.DefaultTableCellRenderer() {
-        override fun getTableCellRendererComponent(
-            table: JTable?,
-            value: Any?,
-            isSelected: Boolean,
-            hasFocus: Boolean,
-            row: Int,
-            column: Int
-        ): java.awt.Component {
-            val component = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column)
-            text = when (value) {
-                is RuleScope -> when (value) {
-                    RuleScope.FILE_NAME_ONLY ->
-                        AdvancedSqlInjectionBundle.message("msg.AdvancedSqlInjection.scope.fileNameOnly")
-
-                    RuleScope.PATH_AWARE ->
-                        AdvancedSqlInjectionBundle.message("msg.AdvancedSqlInjection.scope.pathAware")
-                }
-
-                is RuleTargetType -> when (value) {
-                    RuleTargetType.VALUE_STARTS_WITH_PREFIX ->
-                        AdvancedSqlInjectionBundle.message("msg.AdvancedSqlInjection.targetType.startsWith")
-
-                    RuleTargetType.VALUE_CONTAINS_PREFIX ->
-                        AdvancedSqlInjectionBundle.message("msg.AdvancedSqlInjection.targetType.contains")
-                }
-
-                else -> value?.toString().orEmpty()
-            }
-            return component
-        }
-    }
-
-    private class RulesTableModel : AbstractTableModel() {
-        private val columns = listOf(
-            AdvancedSqlInjectionBundle.message("msg.AdvancedSqlInjection.column.enabled"),
-            AdvancedSqlInjectionBundle.message("msg.AdvancedSqlInjection.column.prefix"),
-            AdvancedSqlInjectionBundle.message("msg.AdvancedSqlInjection.column.language"),
-            AdvancedSqlInjectionBundle.message("msg.AdvancedSqlInjection.column.filePattern"),
-            AdvancedSqlInjectionBundle.message("msg.AdvancedSqlInjection.column.pathPattern"),
-            AdvancedSqlInjectionBundle.message("msg.AdvancedSqlInjection.column.scope"),
-            AdvancedSqlInjectionBundle.message("msg.AdvancedSqlInjection.column.targetType")
-        )
-        private val rules = mutableListOf<InjectionRule>()
-
-        override fun getRowCount(): Int = rules.size
-
-        override fun getColumnCount(): Int = columns.size
-
-        override fun getColumnName(column: Int): String = columns[column]
-
-        override fun getColumnClass(columnIndex: Int): Class<*> =
-            if (columnIndex == 0) java.lang.Boolean::class.java else Any::class.java
-
-        override fun isCellEditable(rowIndex: Int, columnIndex: Int): Boolean = columnIndex == 0
-
-        override fun getValueAt(rowIndex: Int, columnIndex: Int): Any {
-            val rule = rules[rowIndex]
-            return when (columnIndex) {
-                0 -> rule.enabled
-                1 -> rule.prefix
-                2 -> rule.languageId
-                3 -> rule.filePattern
-                4 -> rule.pathPattern.ifBlank { "-" }
-                5 -> rule.scope
-                6 -> rule.targetType
-                else -> ""
-            }
-        }
-
-        override fun setValueAt(aValue: Any?, rowIndex: Int, columnIndex: Int) {
-            if (columnIndex == 0 && rowIndex in rules.indices) {
-                rules[rowIndex] = rules[rowIndex].copy(enabled = aValue as? Boolean ?: false)
-                fireTableRowsUpdated(rowIndex, rowIndex)
-            }
-        }
-
-        fun setRules(newRules: List<InjectionRule>) {
-            rules.clear()
-            rules.addAll(newRules.map(InjectionRule::normalized))
-            fireTableDataChanged()
-        }
-
-        fun addRule(rule: InjectionRule): Int {
-            val newIndex = rules.size
-            rules += rule.normalized()
-            fireTableRowsInserted(newIndex, newIndex)
-            return newIndex
-        }
-
-        fun updateRule(index: Int, rule: InjectionRule) {
-            if (index !in rules.indices) {
-                return
-            }
-            rules[index] = rule.normalized()
-            fireTableRowsUpdated(index, index)
-        }
-
-        fun removeRule(index: Int) {
-            if (index !in rules.indices) {
-                return
-            }
-            rules.removeAt(index)
-            fireTableRowsDeleted(index, index)
-        }
-
-        fun moveUp(index: Int): Int {
-            if (index !in rules.indices || index == 0) {
-                return index
-            }
-            val rule = rules.removeAt(index)
-            val newIndex = index - 1
-            rules.add(newIndex, rule)
-            fireTableDataChanged()
-            return newIndex
-        }
-
-        fun moveDown(index: Int): Int {
-            if (index !in rules.indices || index == rules.lastIndex) {
-                return index
-            }
-            val rule = rules.removeAt(index)
-            val newIndex = index + 1
-            rules.add(newIndex, rule)
-            fireTableDataChanged()
-            return newIndex
-        }
-
-        fun ruleAt(index: Int): InjectionRule? = rules.getOrNull(index)?.copy()
-
-        fun snapshot(): List<InjectionRule> = rules.map(InjectionRule::copy)
-    }
 }

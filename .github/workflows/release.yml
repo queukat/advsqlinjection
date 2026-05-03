@@ -12,7 +12,7 @@ env:
   CERTIFICATE_CHAIN: ${{ secrets.CERTIFICATE_CHAIN }}
   PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
   PRIVATE_KEY_PASSWORD: ${{ secrets.PRIVATE_KEY_PASSWORD }}
-  PUBLISH_TOKEN: ${{ secrets.PUBLISH_TOKEN }}
+  PUBLISH_TOKEN_PLUGIN: ${{ secrets.PUBLISH_TOKEN_PLUGIN }}
 
 jobs:
   release:
@@ -91,9 +91,9 @@ jobs:
             build/distributions/SHA256SUMS.txt
 
       - name: Publish to JetBrains Marketplace
-        if: ${{ env.PUBLISH_TOKEN != '' && env.CERTIFICATE_CHAIN != '' && env.PRIVATE_KEY != '' && env.PRIVATE_KEY_PASSWORD != '' }}
+        if: ${{ env.PUBLISH_TOKEN_PLUGIN != '' && env.CERTIFICATE_CHAIN != '' && env.PRIVATE_KEY != '' && env.PRIVATE_KEY_PASSWORD != '' }}
         run: ./gradlew publishPlugin --console=plain
 
       - name: Marketplace publish skipped
-        if: ${{ !(env.PUBLISH_TOKEN != '' && env.CERTIFICATE_CHAIN != '' && env.PRIVATE_KEY != '' && env.PRIVATE_KEY_PASSWORD != '') }}
-        run: echo "Marketplace publish skipped because one or more required secrets are missing."
+        if: ${{ !(env.PUBLISH_TOKEN_PLUGIN != '' && env.CERTIFICATE_CHAIN != '' && env.PRIVATE_KEY != '' && env.PRIVATE_KEY_PASSWORD != '') }}
+        run: echo "Marketplace publish skipped because one or more required secrets are missing. Use PUBLISH_TOKEN_PLUGIN for the JetBrains Marketplace permanent token, not a GitHub token."

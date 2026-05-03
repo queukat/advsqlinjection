@@ -1,7 +1,7 @@
 <idea-plugin>
     <id>com.queukat.advsqlinjection</id>
     <name>Advanced Language Injection</name>
-    <version>1.1.0</version>
+    <version>1.1.1</version>
 
     <idea-version since-build="223.7571.182" />
 
@@ -29,8 +29,7 @@
         <projectConfigurable
                 id="com.queukat.advsqlinjection.settings"
                 instance="com.queukat.advsqlinjection.settings.AdvancedSQLInjectionSettingsConfigurable"
-                displayName="Advanced Language Injection"
-                nonDefaultProject="true"/>
+                displayName="Advanced Language Injection"/>
     </extensions>
 
     <actions resource-bundle="message">

@@ -23,7 +23,8 @@ private data class LanguageChoice(
     val id: String,
     val displayName: String
 ) {
-    override fun toString(): String = "$displayName ($id)"
+    override fun toString(): String =
+        if (id.isBlank()) displayName else "$displayName ($id)"
 }
 
 class AdvancedSQLInjectionRuleDialog(
@@ -70,20 +71,25 @@ class AdvancedSQLInjectionRuleDialog(
         }
     }
 
-    private val languageChoices: List<LanguageChoice> = Language.getRegisteredLanguages()
-        .mapNotNull { language ->
-            language.id.takeIf { it.isNotBlank() }?.let {
-                LanguageChoice(id = it, displayName = language.displayName.ifBlank { it })
-            }
-        }
-        .distinctBy(LanguageChoice::id)
-        .sortedWith(compareBy(LanguageChoice::displayName, LanguageChoice::id))
+    private val languageChoices: List<LanguageChoice> = buildList {
+        add(LanguageChoice(id = "", displayName = AdvancedSqlInjectionBundle.message("msg.AdvancedSqlInjection.languagePlaceholder")))
+        addAll(
+            Language.getRegisteredLanguages()
+                .mapNotNull { language ->
+                    language.id.takeIf { it.isNotBlank() }?.let {
+                        LanguageChoice(id = it, displayName = language.displayName.ifBlank { it })
+                    }
+                }
+                .distinctBy(LanguageChoice::id)
+                .sortedWith(compareBy(LanguageChoice::displayName, LanguageChoice::id))
+        )
+    }
 
     private val languageCombo = JComboBox(languageChoices.toTypedArray()).apply {
         renderer = SimpleListCellRenderer.create { label, value, _ ->
             label.text = value?.toString().orEmpty()
         }
-        selectLanguage(initialRule.languageId)
+        selectLanguage(this, initialRule.languageId)
     }
 
     private val contentPanel: DialogPanel = panel {
@@ -162,15 +168,17 @@ class AdvancedSQLInjectionRuleDialog(
     private fun selectedLanguageId(): String =
         (languageCombo.selectedItem as? LanguageChoice)?.id.orEmpty()
 
-    private fun selectLanguage(languageId: String) {
-        val model: ComboBoxModel<LanguageChoice> = languageCombo.model
+    private fun selectLanguage(comboBox: JComboBox<LanguageChoice>, languageId: String) {
+        val model: ComboBoxModel<LanguageChoice> = comboBox.model
         for (index in 0 until model.size) {
             val choice = model.getElementAt(index)
             if (choice.id == languageId) {
-                languageCombo.selectedItem = choice
+                comboBox.selectedItem = choice
                 return
             }
         }
-        languageCombo.selectedItem = model.getElementAt(0)
+        if (model.size > 0) {
+            comboBox.selectedItem = model.getElementAt(0)
+        }
     }
 }

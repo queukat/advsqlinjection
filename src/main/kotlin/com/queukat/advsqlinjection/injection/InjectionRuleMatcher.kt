@@ -8,7 +8,8 @@ data class RuleMatchInput(
     val valueText: String,
     val fileName: String,
     val fullPath: String,
-    val relativePath: String? = null
+    val relativePath: String? = null,
+    val structuralPrefixes: List<String> = emptyList()
 )
 
 data class RelativeMatchRange(
@@ -16,60 +17,93 @@ data class RelativeMatchRange(
     val endOffset: Int
 )
 
+data class PreparedInjectionRule(
+    val rule: InjectionRule,
+    val filePatternRegex: Regex,
+    val pathPatternRegex: Regex
+)
+
 object InjectionRuleMatcher {
+    fun prepareRule(rawRule: InjectionRule): PreparedInjectionRule {
+        val rule = rawRule.normalized()
+        val pathPattern = rule.pathPattern.ifBlank { "**" }
+        return PreparedInjectionRule(
+            rule = rule,
+            filePatternRegex = globToRegex(rule.filePattern),
+            pathPatternRegex = globToRegex(pathPattern)
+        )
+    }
+
     fun findRanges(
         rawRule: InjectionRule,
         input: RuleMatchInput,
         caseInsensitivePrefix: Boolean,
         injectAllOccurrences: Boolean
     ): List<RelativeMatchRange> {
-        val rule = rawRule.normalized()
+        return findRanges(
+            preparedRule = prepareRule(rawRule),
+            input = input,
+            caseInsensitivePrefix = caseInsensitivePrefix,
+            injectAllOccurrences = injectAllOccurrences
+        )
+    }
+
+    fun findRanges(
+        preparedRule: PreparedInjectionRule,
+        input: RuleMatchInput,
+        caseInsensitivePrefix: Boolean,
+        injectAllOccurrences: Boolean
+    ): List<RelativeMatchRange> {
+        val rule = preparedRule.rule
         if (!rule.enabled || rule.prefix.isEmpty() || rule.languageId.isEmpty()) {
             return emptyList()
         }
 
-        if (!matchesFile(rule, input)) {
+        if (!matchesFile(preparedRule, input)) {
             return emptyList()
         }
 
         val occurrenceOffsets = findOccurrenceOffsets(rule, input.valueText, caseInsensitivePrefix)
-        if (occurrenceOffsets.isEmpty()) {
-            return emptyList()
-        }
+        if (occurrenceOffsets.isNotEmpty()) {
+            val effectiveOffsets = if (injectAllOccurrences) occurrenceOffsets else listOf(occurrenceOffsets.first())
+            return effectiveOffsets.mapIndexedNotNull { index, occurrenceOffset ->
+                val startOffset = occurrenceOffset + rule.prefix.length
+                val endOffset = when {
+                    !injectAllOccurrences -> input.valueText.length
+                    index + 1 < effectiveOffsets.size -> effectiveOffsets[index + 1]
+                    else -> input.valueText.length
+                }
 
-        val effectiveOffsets = if (injectAllOccurrences) occurrenceOffsets else listOf(occurrenceOffsets.first())
-        return effectiveOffsets.mapIndexedNotNull { index, occurrenceOffset ->
-            val startOffset = occurrenceOffset + rule.prefix.length
-            val endOffset = when {
-                !injectAllOccurrences -> input.valueText.length
-                index + 1 < effectiveOffsets.size -> effectiveOffsets[index + 1]
-                else -> input.valueText.length
-            }
-
-            if (startOffset < endOffset) {
-                RelativeMatchRange(startOffset, endOffset)
-            } else {
-                null
+                if (startOffset < endOffset) {
+                    RelativeMatchRange(startOffset, endOffset)
+                } else {
+                    null
+                }
             }
         }
+
+        return findStructuralPrefixRange(rule, input, caseInsensitivePrefix)
     }
 
     fun matchesFile(rawRule: InjectionRule, input: RuleMatchInput): Boolean {
-        val rule = rawRule.normalized()
-        if (!globMatches(rule.filePattern, input.fileName)) {
+        return matchesFile(prepareRule(rawRule), input)
+    }
+
+    fun matchesFile(preparedRule: PreparedInjectionRule, input: RuleMatchInput): Boolean {
+        if (!preparedRule.filePatternRegex.matches(input.fileName)) {
             return false
         }
 
+        val rule = preparedRule.rule
         if (rule.scope == RuleScope.FILE_NAME_ONLY) {
             return true
         }
 
-        val pathPattern = rule.pathPattern.ifBlank { "**" }
         return buildList {
             add(input.fullPath)
             input.relativePath?.let(::add)
         }.distinct().any { candidate ->
-            globMatches(pathPattern, InjectionRule.normalizePath(candidate))
+            preparedRule.pathPatternRegex.matches(InjectionRule.normalizePath(candidate))
         }
     }
 
@@ -116,8 +150,31 @@ object InjectionRuleMatcher {
         }
     }
 
-    private fun globMatches(glob: String, value: String): Boolean =
-        globToRegex(glob).matches(value)
+    private fun findStructuralPrefixRange(
+        rule: InjectionRule,
+        input: RuleMatchInput,
+        caseInsensitivePrefix: Boolean
+    ): List<RelativeMatchRange> {
+        if (input.valueText.isEmpty()) {
+            return emptyList()
+        }
+
+        val matches = input.structuralPrefixes.any { structuralPrefix ->
+            when (rule.targetType) {
+                RuleTargetType.VALUE_STARTS_WITH_PREFIX ->
+                    structuralPrefix.startsWith(rule.prefix, ignoreCase = caseInsensitivePrefix)
+
+                RuleTargetType.VALUE_CONTAINS_PREFIX ->
+                    structuralPrefix.indexOf(rule.prefix, ignoreCase = caseInsensitivePrefix) >= 0
+            }
+        }
+
+        return if (matches) {
+            listOf(RelativeMatchRange(0, input.valueText.length))
+        } else {
+            emptyList()
+        }
+    }
 
     private fun globToRegex(glob: String): Regex {
         val builder = StringBuilder(glob.length * 2)

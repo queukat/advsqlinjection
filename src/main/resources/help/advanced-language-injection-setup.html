@@ -1,0 +1,42 @@
+<html>
+<body>
+<h2>Advanced Language Injection setup guide</h2>
+<p>
+Advanced Language Injection applies IDE language support to structured values when a configured rule matches the
+current file and value prefix.
+</p>
+
+<h3>Create a rule</h3>
+<ol>
+  <li>Open Settings and search for <strong>Advanced Language Injection</strong>.</li>
+  <li>Click <strong>Add</strong> to create a rule from scratch, or <strong>Add SQL example</strong> for a SQL preset.</li>
+  <li>Choose the target language registered in the IDE, for example SQL, RegExp, GraphQL, or another installed language.</li>
+  <li>Set a file pattern such as <code>*.yaml</code> or <code>*.json</code>.</li>
+  <li>Use path-aware matching when only a specific folder should be affected, for example <code>config/**/*.yaml</code>.</li>
+  <li>Use <strong>Preview current file</strong> to confirm the selected rule matches values in the active editor.</li>
+</ol>
+
+<h3>Example</h3>
+<pre>query: "sql:select * from users where active = true"</pre>
+
+<p>
+For this value, a rule with prefix <code>sql:</code> and language <code>SQL</code> injects SQL after the prefix.
+</p>
+
+<h3>YAML block scalar example</h3>
+<pre>snippet: |
+  SELECT * FROM users WHERE active = true</pre>
+
+<p>
+For YAML block scalars, use prefix <code>snippet: |</code>. The rule matches the YAML header line and injects into
+the block body.
+</p>
+
+<h3>Limits</h3>
+<ul>
+  <li>Only PSI elements that support IntelliJ language injection can be injected.</li>
+  <li>Plain text files are not supported by the IntelliJ Platform injection host model.</li>
+  <li>Rules are prefix and path based; they do not inspect YAML or JSON schemas.</li>
+</ul>
+</body>
+</html>
