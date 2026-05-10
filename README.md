@@ -1,5 +1,9 @@
 # Advanced Language Injection
 
+<!-- public-repo-status -->
+> Status: Active JetBrains Marketplace plugin. Issues are open for bugs and focused feature requests.
+
+
 [![JetBrains Marketplace](https://img.shields.io/jetbrains/plugin/v/29252)](https://plugins.jetbrains.com/plugin/29252-advanced-language-injection)
 [![Downloads](https://img.shields.io/jetbrains/plugin/d/29252)](https://plugins.jetbrains.com/plugin/29252-advanced-language-injection)
 [![Rating](https://img.shields.io/jetbrains/plugin/r/stars/29252)](https://plugins.jetbrains.com/plugin/29252-advanced-language-injection)
