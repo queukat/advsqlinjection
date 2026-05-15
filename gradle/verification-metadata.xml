@@ -3,6 +3,9 @@
    <configuration>
       <verify-metadata>true</verify-metadata>
       <verify-signatures>false</verify-signatures>
+      <trusted-artifacts>
+         <trust group="com.jetbrains" name="ideaIC" version="2022.3" file="ivy-2022.3.xml" reason="Gradle IntelliJ plugin generates this Ivy descriptor with environment-specific variants; IDE archives remain checksum verified"/>
+      </trusted-artifacts>
    </configuration>
    <components>
       <component group="com.fasterxml" name="oss-parent" version="48">
