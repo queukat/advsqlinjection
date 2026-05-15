@@ -5,6 +5,9 @@
       <verify-signatures>false</verify-signatures>
       <trusted-artifacts>
          <trust group="com.jetbrains" name="ideaIC" version="2022.3" file="ivy-2022.3.xml" reason="Gradle IntelliJ plugin generates this Ivy descriptor with environment-specific variants; IDE archives remain checksum verified"/>
+         <trust group="com.jetbrains" name="jbre" version="jbr_jcef-17.0.5-linux-x64-b653.14" file="jbre-jbr_jcef-17.0.5-linux-x64-b653.14.tar.gz" reason="Gradle IntelliJ plugin resolves platform-specific JetBrains Runtime artifacts on Linux CI"/>
+         <trust group="unzipped\.com\.jetbrains\.plugins" name="(java|properties|yaml)" version="ideaIC-IC-223\.7571\.182" file="ivy-ideaIC-IC-223\.7571\.182\.xml" regex="true" reason="Gradle IntelliJ plugin generates Ivy descriptors for bundled IDE plugins after unzipping the verified IDE distribution"/>
+         <trust group="unzipped\.com\.jetbrains\.plugins" name="(java|properties|yaml)" version="ideaIC-IC-223\.7571\.182" file="lib/.*-ideaIC-IC-223\.7571\.182-unzipped\.com\.jetbrains\.plugins\.jar" regex="true" reason="Gradle IntelliJ plugin derives bundled plugin jars from the verified IDE distribution"/>
       </trusted-artifacts>
    </configuration>
    <components>
