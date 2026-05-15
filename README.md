@@ -7,6 +7,26 @@
 [![JetBrains Marketplace](https://img.shields.io/jetbrains/plugin/v/29252)](https://plugins.jetbrains.com/plugin/29252-advanced-language-injection)
 [![Downloads](https://img.shields.io/jetbrains/plugin/d/29252)](https://plugins.jetbrains.com/plugin/29252-advanced-language-injection)
 [![Rating](https://img.shields.io/jetbrains/plugin/r/stars/29252)](https://plugins.jetbrains.com/plugin/29252-advanced-language-injection)
+![Local SonarQube Quality Gate](https://img.shields.io/badge/Local%20SonarQube-Quality%20Gate%20OK-brightgreen)
+![Coverage](https://img.shields.io/badge/Coverage-84.0%25-brightgreen)
+![Issues](https://img.shields.io/badge/Issues-0-brightgreen)
+![Duplications](https://img.shields.io/badge/Duplications-0.0%25-brightgreen)
+
+<details>
+<summary><strong>Local SonarQube quality snapshot</strong> (checked 2026-05-16)</summary>
+
+| Metric | Value |
+| --- | --- |
+| Quality Gate | OK |
+| Overall coverage | 84.0% |
+| New-code coverage | Not reported |
+| Overall duplicated lines | 0.0% |
+| Bugs | 0 |
+| Vulnerabilities | 0 |
+| Code smells | 0 |
+
+These values are a checked local SonarQube API snapshot, not live cloud badges.
+</details>
 
 Advanced Language Injection is a JetBrains plugin for projects that keep SQL or other DSL snippets inside structured configuration values such as YAML, JSON, or Properties files.
 
