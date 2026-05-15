@@ -32,11 +32,11 @@ internal object AdvancedSQLInjectionRulePreview {
         }
 
         val editor = FileEditorManager.getInstance(project).selectedTextEditor
-            ?: return AdvancedSqlInjectionBundle.message("msg.AdvancedSqlInjection.previewNoEditor")
+            ?: return AdvancedSqlInjectionBundle.message(NO_EDITOR_MESSAGE_KEY)
         val virtualFile = FileDocumentManager.getInstance().getFile(editor.document)
-            ?: return AdvancedSqlInjectionBundle.message("msg.AdvancedSqlInjection.previewNoEditor")
+            ?: return AdvancedSqlInjectionBundle.message(NO_EDITOR_MESSAGE_KEY)
         val psiFile = PsiManager.getInstance(project).findFile(virtualFile)
-            ?: return AdvancedSqlInjectionBundle.message("msg.AdvancedSqlInjection.previewNoEditor")
+            ?: return AdvancedSqlInjectionBundle.message(NO_EDITOR_MESSAGE_KEY)
 
         val fullPath = InjectionRuleMatcher.normalizePath(virtualFile.path)
         val relativePath = InjectionRuleMatcher.toRelativePath(project.basePath, virtualFile.path)
@@ -45,7 +45,7 @@ internal object AdvancedSQLInjectionRulePreview {
             RuleMatchInput(valueText = "", fileName = virtualFile.name, fullPath = fullPath, relativePath = relativePath)
         )
 
-        val hosts = PsiTreeUtil.collectElementsOfType(psiFile, PsiLanguageInjectionHost::class.java)
+        val hosts = PsiTreeUtil.collectElementsOfType(psiFile, PsiLanguageInjectionHost::class.java).toList()
         var matchedHosts = 0
         var matchedSegments = 0
         val previews = mutableListOf<String>()
@@ -95,6 +95,7 @@ internal object AdvancedSQLInjectionRulePreview {
         }
     }
 
+    private const val NO_EDITOR_MESSAGE_KEY = "msg.AdvancedSqlInjection.previewNoEditor"
     private const val PREVIEW_LIMIT = 3
     private const val PREVIEW_TEXT_LIMIT = 120
 }

@@ -1,6 +1,11 @@
+import org.gradle.api.tasks.testing.Test
+import org.gradle.testing.jacoco.plugins.JacocoTaskExtension
+
 plugins {
     alias(libs.plugins.kotlin)
     alias(libs.plugins.intellij)
+    alias(libs.plugins.sonarqube)
+    jacoco
     id("ivy-publish")
 }
 
@@ -145,8 +150,56 @@ java {
     }
 }
 
+sonar {
+    properties {
+        property("sonar.projectKey", "advsqlinjection")
+        property("sonar.projectName", "Advanced Language Injection")
+        property(
+            "sonar.coverage.jacoco.xmlReportPaths",
+            layout.buildDirectory.file("reports/jacoco/test/jacocoTestReport.xml").get().asFile.absolutePath
+        )
+        property(
+            "sonar.coverage.exclusions",
+            listOf(
+                "src/main/kotlin/com/queukat/advsqlinjection/actions/**",
+                "src/main/kotlin/com/queukat/advsqlinjection/settings/AdvancedSQLInjectionHelp.kt",
+                "src/main/kotlin/com/queukat/advsqlinjection/settings/AdvancedSQLInjectionRuleDialog.kt",
+                "src/main/kotlin/com/queukat/advsqlinjection/settings/AdvancedSQLInjectionRulePreview.kt",
+                "src/main/kotlin/com/queukat/advsqlinjection/settings/AdvancedSQLInjectionRulesCellRenderer.kt",
+                "src/main/kotlin/com/queukat/advsqlinjection/settings/AdvancedSQLInjectionSettingsConfigurable.kt",
+                "src/main/kotlin/com/queukat/advsqlinjection/settings/AdvancedSQLInjectionSettingsPanel.kt"
+            ).joinToString(",")
+        )
+    }
+}
+
 
 tasks {
+    withType<Test> {
+        extensions.configure<JacocoTaskExtension> {
+            isIncludeNoLocationClasses = true
+            excludes = listOf("jdk.internal.*")
+        }
+    }
+
+    test {
+        finalizedBy(jacocoTestReport)
+    }
+
+    jacocoTestReport {
+        dependsOn(test)
+        classDirectories.setFrom(instrumentCode)
+        reports {
+            xml.required.set(true)
+            html.required.set(true)
+            csv.required.set(false)
+        }
+    }
+
+    named("sonar") {
+        dependsOn(jacocoTestReport)
+    }
+
     patchPluginXml {
         version.set(project.version.toString())
         sinceBuild.set("223.7571.182")

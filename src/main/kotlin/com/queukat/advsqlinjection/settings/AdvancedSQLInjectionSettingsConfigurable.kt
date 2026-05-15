@@ -1,7 +1,6 @@
 package com.queukat.advsqlinjection.settings
 
 import com.queukat.advsqlinjection.messages.AdvancedSqlInjectionBundle
-import com.intellij.openapi.options.Configurable
 import com.intellij.openapi.options.SearchableConfigurable
 import com.intellij.openapi.project.Project
 import javax.swing.JComponent
