@@ -7,7 +7,6 @@ import com.intellij.openapi.Disposable
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.DialogPanel
 import com.intellij.openapi.ui.Messages
-import com.intellij.openapi.util.Disposer
 import com.intellij.ui.ToolbarDecorator
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.dsl.builder.AlignX
@@ -22,6 +21,9 @@ import javax.swing.JTable
 import javax.swing.ListSelectionModel
 
 class AdvancedSQLInjectionSettingsPanel(private val project: Project?) : Disposable {
+
+    @Volatile
+    private var disposed = false
 
     private val rulesTableModel = AdvancedSQLInjectionRulesTableModel()
     private val rulesTable = JTable(rulesTableModel).apply {
@@ -104,7 +106,9 @@ class AdvancedSQLInjectionSettingsPanel(private val project: Project?) : Disposa
         updateEmptyState()
     }
 
-    override fun dispose() = Unit
+    override fun dispose() {
+        disposed = true
+    }
 
     fun isModified(state: AdvancedSQLInjectionSettingsState.State): Boolean =
         injectionEnabledCheck.isSelected != state.sqlInjectionEnabled ||
@@ -281,7 +285,7 @@ class AdvancedSQLInjectionSettingsPanel(private val project: Project?) : Disposa
             try {
                 showPreviewResult(result)
             } finally {
-                if (!Disposer.isDisposed(this)) {
+                if (!disposed) {
                     previewCurrentFileButton.isEnabled = true
                 }
             }

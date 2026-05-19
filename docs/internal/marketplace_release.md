@@ -25,6 +25,41 @@ Build the plugin ZIP, then publish it:
 
 `publishPlugin` uses `PUBLISH_TOKEN_PLUGIN` and uploads to the `default` Marketplace channel. The `signPlugin` task is available for explicit signed builds, but `publishPlugin` does not depend on it.
 
+## Removing A Bad Marketplace Upload
+
+Use this only when a just-uploaded version must be replaced with the same version number, for example after Marketplace verification reports a problem.
+
+1. Find the Marketplace update id:
+
+   ```powershell
+   $headers = @{ Authorization = "Bearer $env:PUBLISH_TOKEN_PLUGIN" }
+   Invoke-RestMethod `
+     -Uri "https://plugins.jetbrains.com/api/plugins/29252/updateVersions" `
+     -Headers $headers
+   ```
+
+2. Delete the exact bad update id:
+
+   ```powershell
+   Invoke-RestMethod `
+     -Uri "https://plugins.jetbrains.com/api/updates/<update-id>" `
+     -Method Delete `
+     -Headers $headers
+   ```
+
+3. Query `https://plugins.jetbrains.com/api/plugins/29252/updateVersions` again and verify that the bad version is gone before republishing.
+
+For the 2026-05-20 `1.1.2` retry, the removed bad update id was `1051887`; the republished update id was `1051889`.
+
+## Marketplace Verification Follow-Up
+
+Marketplace verification can run against newer IDE branches than the local baseline. If Marketplace reports deprecated API usage:
+
+1. Remove the deprecated API from production code.
+2. Delete the bad Marketplace update if the same version number must be reused.
+3. Run `.\gradlew.bat buildPlugin --console=plain`.
+4. Run `.\gradlew.bat publishPlugin --console=plain`.
+
 ## GitHub Release Path
 
 After committing and pushing the release changes, create and push a matching tag:
