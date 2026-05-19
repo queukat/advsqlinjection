@@ -1,8 +1,10 @@
 package com.queukat.advsqlinjection.settings
 
 import com.queukat.advsqlinjection.messages.AdvancedSqlInjectionBundle
+import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer
 import com.intellij.openapi.options.SearchableConfigurable
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.Disposer
 import javax.swing.JComponent
 
 class AdvancedSQLInjectionSettingsConfigurable(
@@ -34,7 +36,11 @@ class AdvancedSQLInjectionSettingsConfigurable(
     override fun apply() {
         val service = AdvancedSQLInjectionSettingsState.getInstance(project)
         val state = service.state
+        val shouldRefreshHighlighting = settingsPanel?.isModified(state) == true
         settingsPanel?.apply(state)
+        if (shouldRefreshHighlighting) {
+            DaemonCodeAnalyzer.getInstance(project).settingsChanged()
+        }
     }
 
     override fun reset() {
@@ -43,6 +49,7 @@ class AdvancedSQLInjectionSettingsConfigurable(
     }
 
     override fun disposeUIResources() {
+        settingsPanel?.let(Disposer::dispose)
         settingsPanel = null
     }
 

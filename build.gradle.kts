@@ -6,11 +6,10 @@ plugins {
     alias(libs.plugins.intellij)
     alias(libs.plugins.sonarqube)
     jacoco
-    id("ivy-publish")
 }
 
 group = "com.queukat"
-version = "1.1.1"
+version = "1.1.2"
 
 val changelogFile = rootProject.file("CHANGELOG.md")
 
@@ -128,6 +127,33 @@ fun markdownToHtml(markdown: String): String {
 
 val currentReleaseNotesMarkdown = providers.provider { readChangelogSection(project.version.toString()) }
 val currentReleaseNotesHtml = currentReleaseNotesMarkdown.map(::markdownToHtml)
+val defaultPluginVerifierMatrix = "baseline"
+val pluginVerifierMatrices = mapOf(
+    "baseline" to listOf("IC-2022.3.3"),
+    "release" to listOf("IC-2022.3.3", "IC-2024.3.6", "IU-2025.3", "IU-2026.1.2")
+)
+
+fun parseIdeVersions(value: String): List<String> =
+    value.split(',')
+        .map(String::trim)
+        .filter(String::isNotEmpty)
+
+fun resolvePluginVerifierMatrix(name: String): List<String> {
+    val normalizedName = name.trim().lowercase()
+    return pluginVerifierMatrices[normalizedName] ?: throw GradleException(
+        "Unknown plugin verifier matrix '$name'. Known matrices: ${pluginVerifierMatrices.keys.sorted().joinToString(", ")}."
+    )
+}
+
+val selectedPluginVerifierMatrix = providers.gradleProperty("pluginVerifierMatrix")
+    .orElse(providers.environmentVariable("PLUGIN_VERIFIER_MATRIX"))
+    .map(::resolvePluginVerifierMatrix)
+
+val pluginVerifierIdeVersions = providers.gradleProperty("pluginVerifierIdeVersions")
+    .map(::parseIdeVersions)
+    .orElse(providers.environmentVariable("PLUGIN_VERIFIER_IDE_VERSIONS").map(::parseIdeVersions))
+    .orElse(selectedPluginVerifierMatrix)
+    .orElse(resolvePluginVerifierMatrix(defaultPluginVerifierMatrix))
 
 repositories {
     mavenCentral()
@@ -165,6 +191,7 @@ sonar {
                 "src/main/kotlin/com/queukat/advsqlinjection/settings/AdvancedSQLInjectionHelp.kt",
                 "src/main/kotlin/com/queukat/advsqlinjection/settings/AdvancedSQLInjectionRuleDialog.kt",
                 "src/main/kotlin/com/queukat/advsqlinjection/settings/AdvancedSQLInjectionRulePreview.kt",
+                "src/main/kotlin/com/queukat/advsqlinjection/settings/AdvancedSQLInjectionRulePreviewDialog.kt",
                 "src/main/kotlin/com/queukat/advsqlinjection/settings/AdvancedSQLInjectionRulesCellRenderer.kt",
                 "src/main/kotlin/com/queukat/advsqlinjection/settings/AdvancedSQLInjectionSettingsConfigurable.kt",
                 "src/main/kotlin/com/queukat/advsqlinjection/settings/AdvancedSQLInjectionSettingsPanel.kt"
@@ -211,7 +238,10 @@ tasks {
     }
 
     runPluginVerifier {
-        ideVersions.set(listOf("IC-2022.3.3"))
+        ideVersions.set(pluginVerifierIdeVersions)
+        doFirst {
+            logger.lifecycle("Plugin verifier IDE versions: ${pluginVerifierIdeVersions.get().joinToString(", ")}")
+        }
     }
 
     register("writeReleaseNotes") {
@@ -236,7 +266,6 @@ tasks {
     }
 
     publishPlugin {
-        dependsOn(signPlugin)
         token.set(providers.environmentVariable("PUBLISH_TOKEN_PLUGIN"))
         channels.set(listOf("default"))
     }

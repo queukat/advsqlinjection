@@ -180,24 +180,40 @@ object InjectionRuleMatcher {
         val builder = StringBuilder(glob.length * 2)
         var index = 0
         while (index < glob.length) {
-            val current = glob[index]
-            if (current == '*') {
-                val nextIsWildcard = index + 1 < glob.length && glob[index + 1] == '*'
-                if (nextIsWildcard) {
-                    builder.append(".*")
-                    index++
-                } else {
-                    builder.append("[^/]*")
-                }
-            } else {
-                when (current) {
-                    '?', '.', '(', ')', '[', ']', '{', '}', '+',
-                    '$', '^', '|', '\\' -> builder.append('\\').append(current)
-                    else -> builder.append(current)
-                }
-            }
-            index++
+            index = appendGlobToken(glob, index, builder)
         }
         return Regex("^$builder$")
+    }
+
+    private fun appendGlobToken(glob: String, index: Int, builder: StringBuilder): Int =
+        if (glob[index] == '*') {
+            appendWildcardToken(glob, index, builder)
+        } else {
+            appendLiteralToken(glob[index], builder)
+            index + 1
+        }
+
+    private fun appendWildcardToken(glob: String, index: Int, builder: StringBuilder): Int {
+        if (glob.getOrNull(index + 1) != '*') {
+            builder.append("[^/]*")
+            return index + 1
+        }
+
+        return if (glob.getOrNull(index + 2) == '/') {
+            builder.append("(?:.*/)?")
+            index + 3
+        } else {
+            builder.append(".*")
+            index + 2
+        }
+    }
+
+    private fun appendLiteralToken(current: Char, builder: StringBuilder) {
+        when (current) {
+            '?', '.', '(', ')', '[', ']', '{', '}', '+',
+            '$', '^', '|', '\\' -> builder.append('\\').append(current)
+
+            else -> builder.append(current)
+        }
     }
 }

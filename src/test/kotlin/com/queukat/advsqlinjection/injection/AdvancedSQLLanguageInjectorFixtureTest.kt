@@ -4,9 +4,11 @@ import com.queukat.advsqlinjection.model.InjectionRule
 import com.queukat.advsqlinjection.model.RuleScope
 import com.queukat.advsqlinjection.model.RuleTargetType
 import com.queukat.advsqlinjection.settings.AdvancedSQLInjectionSettingsState
+import com.intellij.lang.injection.InjectedLanguageManager
 import com.intellij.testFramework.fixtures.LightPlatformCodeInsightFixture4TestCase
-import junit.framework.TestCase.assertEquals
 import org.junit.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 
 class AdvancedSQLLanguageInjectorFixtureTest : LightPlatformCodeInsightFixture4TestCase() {
 
@@ -64,6 +66,16 @@ class AdvancedSQLLanguageInjectorFixtureTest : LightPlatformCodeInsightFixture4T
         myFixture.configureByText(fileName, text)
         myFixture.doHighlighting()
 
-        assertEquals("JAVA", myFixture.file.language.id)
+        val injectedElement = assertNotNull(
+            InjectedLanguageManager.getInstance(project)
+                .findInjectedElementAt(myFixture.file, myFixture.caretOffset),
+            "Expected PSI at caret to belong to an injected fragment"
+        )
+        assertEquals("JAVA", injectedElement.language.id)
+
+        assertNotNull(
+            InjectedLanguageManager.getInstance(project).getInjectionHost(injectedElement),
+            "Expected injected PSI to have a host"
+        )
     }
 }

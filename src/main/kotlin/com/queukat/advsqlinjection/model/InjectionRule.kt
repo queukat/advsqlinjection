@@ -13,7 +13,7 @@ enum class RuleTargetType {
 data class InjectionRule(
     var enabled: Boolean = true,
     var prefix: String = "",
-    var languageId: String = "SQL",
+    var languageId: String = "",
     var filePattern: String = "*",
     var pathPattern: String = "",
     var scope: RuleScope = RuleScope.FILE_NAME_ONLY,

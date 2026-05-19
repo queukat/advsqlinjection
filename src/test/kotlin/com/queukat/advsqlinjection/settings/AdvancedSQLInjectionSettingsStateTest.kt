@@ -11,6 +11,11 @@ import kotlin.test.assertTrue
 class AdvancedSQLInjectionSettingsStateTest {
 
     @Test
+    fun `new rules do not carry a hidden default language`() {
+        assertEquals("", InjectionRule().languageId)
+    }
+
+    @Test
     fun `loadState migrates legacy raw rules into typed rules`() {
         val service = AdvancedSQLInjectionSettingsState()
         val state = AdvancedSQLInjectionSettingsState.State().apply {
@@ -26,6 +31,24 @@ class AdvancedSQLInjectionSettingsStateTest {
         assertEquals(RuleScope.FILE_NAME_ONLY, migratedRule.scope)
         assertEquals(RuleTargetType.VALUE_CONTAINS_PREFIX, migratedRule.targetType)
         assertTrue(service.state.prefixLanguagePatterns.isEmpty())
+    }
+
+    @Test
+    fun `loadState restores SQL language omitted by old typed-rule defaults`() {
+        val service = AdvancedSQLInjectionSettingsState()
+        val state = AdvancedSQLInjectionSettingsState.State().apply {
+            rules = mutableListOf(
+                InjectionRule(
+                    prefix = "sql:",
+                    languageId = "",
+                    filePattern = "*.yaml"
+                )
+            )
+        }
+
+        service.loadState(state)
+
+        assertEquals("SQL", service.state.rules.single().languageId)
     }
 
     @Test

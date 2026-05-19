@@ -43,8 +43,17 @@ class AdvancedSQLInjectionSettingsState :
 
     private fun normalizeRules() {
         myState.rules = myState.rules
+            .map(::restoreLegacyOmittedSqlLanguageId)
             .map(InjectionRule::normalized)
             .toMutableList()
+    }
+
+    private fun restoreLegacyOmittedSqlLanguageId(rule: InjectionRule): InjectionRule {
+        return if (rule.languageId.isBlank() && rule.prefix.trim().equals("sql:", ignoreCase = true)) {
+            rule.copy(languageId = "SQL")
+        } else {
+            rule
+        }
     }
 
     companion object {

@@ -2,9 +2,12 @@ package com.queukat.advsqlinjection.settings
 
 import com.queukat.advsqlinjection.messages.AdvancedSqlInjectionBundle
 import com.queukat.advsqlinjection.model.InjectionRule
+import com.intellij.lang.Language
+import com.intellij.openapi.Disposable
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.DialogPanel
 import com.intellij.openapi.ui.Messages
+import com.intellij.openapi.util.Disposer
 import com.intellij.ui.ToolbarDecorator
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.dsl.builder.AlignX
@@ -18,7 +21,7 @@ import javax.swing.JPanel
 import javax.swing.JTable
 import javax.swing.ListSelectionModel
 
-class AdvancedSQLInjectionSettingsPanel(private val project: Project?) {
+class AdvancedSQLInjectionSettingsPanel(private val project: Project?) : Disposable {
 
     private val rulesTableModel = AdvancedSQLInjectionRulesTableModel()
     private val rulesTable = JTable(rulesTableModel).apply {
@@ -101,6 +104,8 @@ class AdvancedSQLInjectionSettingsPanel(private val project: Project?) {
         updateEmptyState()
     }
 
+    override fun dispose() = Unit
+
     fun isModified(state: AdvancedSQLInjectionSettingsState.State): Boolean =
         injectionEnabledCheck.isSelected != state.sqlInjectionEnabled ||
             injectAllOccurrencesCheck.isSelected != state.injectAllOccurrences ||
@@ -150,7 +155,7 @@ class AdvancedSQLInjectionSettingsPanel(private val project: Project?) {
             openRuleDialog(null)?.let(::appendRule)
         }
         addExampleButton.addActionListener {
-            openRuleDialog(InjectionRule.exampleSqlRule())?.let(::appendRule)
+            addSqlExampleRule()
         }
         duplicateRuleButton.addActionListener {
             duplicateSelectedRule()
@@ -184,6 +189,18 @@ class AdvancedSQLInjectionSettingsPanel(private val project: Project?) {
         val newIndex = rulesTableModel.duplicateRule(selectedRow) ?: return
         selectRow(newIndex)
         updateEmptyState()
+    }
+
+    private fun addSqlExampleRule() {
+        val sqlExampleRule = InjectionRule.exampleSqlRule()
+        if (Language.findLanguageByID(sqlExampleRule.languageId) == null) {
+            Messages.showWarningDialog(
+                panel,
+                AdvancedSqlInjectionBundle.message("msg.AdvancedSqlInjection.sqlExampleLanguageUnavailable"),
+                AdvancedSqlInjectionBundle.message("msg.AdvancedSqlInjection.newRuleDialogTitle")
+            )
+        }
+        openRuleDialog(sqlExampleRule)?.let(::appendRule)
     }
 
     private fun editSelectedRule() {
@@ -245,25 +262,34 @@ class AdvancedSQLInjectionSettingsPanel(private val project: Project?) {
 
     private fun previewSelectedRuleAgainstCurrentFile() {
         val selectedRule = rulesTableModel.ruleAt(rulesTable.selectedRow) ?: run {
-            showPreviewMessage(AdvancedSqlInjectionBundle.message("msg.AdvancedSqlInjection.previewSelectRule"))
+            showPreviewResult(
+                AdvancedSQLInjectionRulePreview.messageResult(
+                    languageId = "",
+                    message = AdvancedSqlInjectionBundle.message("msg.AdvancedSqlInjection.previewSelectRule")
+                )
+            )
             return
         }
-        showPreviewMessage(
-            AdvancedSQLInjectionRulePreview.buildMessage(
-                project = project,
-                selectedRule = selectedRule,
-                caseInsensitivePrefix = caseInsensitivePrefixCheck.isSelected,
-                injectAllOccurrences = injectAllOccurrencesCheck.isSelected
-            )
-        )
+        previewCurrentFileButton.isEnabled = false
+        AdvancedSQLInjectionRulePreview.buildResultAsync(
+            project = project,
+            selectedRule = selectedRule,
+            caseInsensitivePrefix = caseInsensitivePrefixCheck.isSelected,
+            injectAllOccurrences = injectAllOccurrencesCheck.isSelected,
+            parentDisposable = this
+        ) { result ->
+            try {
+                showPreviewResult(result)
+            } finally {
+                if (!Disposer.isDisposed(this)) {
+                    previewCurrentFileButton.isEnabled = true
+                }
+            }
+        }
     }
 
-    private fun showPreviewMessage(message: String) {
-        Messages.showInfoMessage(
-            panel,
-            message,
-            AdvancedSqlInjectionBundle.message("msg.AdvancedSqlInjection.previewDialogTitle")
-        )
+    private fun showPreviewResult(result: AdvancedSQLInjectionRulePreview.Result) {
+        AdvancedSQLInjectionRulePreviewDialog(project, result).show()
     }
 
     private fun selectRow(index: Int) {

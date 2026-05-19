@@ -9,22 +9,30 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.DialogPanel
 import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.openapi.ui.ValidationInfo
-import com.intellij.ui.SimpleListCellRenderer
 import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.components.JBTextField
 import com.intellij.ui.dsl.builder.AlignX
 import com.intellij.ui.dsl.builder.panel
 import com.intellij.util.ui.JBUI
+import java.awt.Component
 import javax.swing.ComboBoxModel
+import javax.swing.DefaultListCellRenderer
 import javax.swing.JComboBox
 import javax.swing.JComponent
+import javax.swing.JList
+import javax.swing.ListCellRenderer
 
 private data class LanguageChoice(
     val id: String,
-    val displayName: String
+    val displayName: String,
+    val unavailable: Boolean = false
 ) {
     override fun toString(): String =
-        if (id.isBlank()) displayName else "$displayName ($id)"
+        when {
+            id.isBlank() -> displayName
+            unavailable -> AdvancedSqlInjectionBundle.message("msg.AdvancedSqlInjection.languageUnavailableInTable", id)
+            else -> "$displayName ($id)"
+        }
 }
 
 class AdvancedSQLInjectionRuleDialog(
@@ -44,8 +52,8 @@ class AdvancedSQLInjectionRuleDialog(
     private val pathPatternField = JBTextField(initialRule.pathPattern, 24)
     private val scopeCombo = JComboBox(RuleScope.values()).apply {
         selectedItem = initialRule.scope
-        renderer = SimpleListCellRenderer.create { label, value, _ ->
-            label.text = when (value) {
+        renderer = textListCellRenderer { value ->
+            when (value) {
                 RuleScope.FILE_NAME_ONLY ->
                     AdvancedSqlInjectionBundle.message("msg.AdvancedSqlInjection.scope.fileNameOnly")
 
@@ -53,13 +61,14 @@ class AdvancedSQLInjectionRuleDialog(
                     AdvancedSqlInjectionBundle.message("msg.AdvancedSqlInjection.scope.pathAware")
 
                 null -> ""
+                else -> value.toString()
             }
         }
     }
     private val targetTypeCombo = JComboBox(RuleTargetType.values()).apply {
         selectedItem = initialRule.targetType
-        renderer = SimpleListCellRenderer.create { label, value, _ ->
-            label.text = when (value) {
+        renderer = textListCellRenderer { value ->
+            when (value) {
                 RuleTargetType.VALUE_STARTS_WITH_PREFIX ->
                     AdvancedSqlInjectionBundle.message("msg.AdvancedSqlInjection.targetType.startsWith")
 
@@ -67,28 +76,31 @@ class AdvancedSQLInjectionRuleDialog(
                     AdvancedSqlInjectionBundle.message("msg.AdvancedSqlInjection.targetType.contains")
 
                 null -> ""
+                else -> value.toString()
             }
         }
     }
 
     private val languageChoices: List<LanguageChoice> = buildList {
-        add(LanguageChoice(id = "", displayName = AdvancedSqlInjectionBundle.message("msg.AdvancedSqlInjection.languagePlaceholder")))
-        addAll(
-            Language.getRegisteredLanguages()
-                .mapNotNull { language ->
-                    language.id.takeIf { it.isNotBlank() }?.let {
-                        LanguageChoice(id = it, displayName = language.displayName.ifBlank { it })
-                    }
+        val initialLanguageId = initialRule.languageId.trim()
+        val registeredChoices = Language.getRegisteredLanguages()
+            .mapNotNull { language ->
+                language.id.takeIf { it.isNotBlank() }?.let {
+                    LanguageChoice(id = it, displayName = language.displayName.ifBlank { it })
                 }
-                .distinctBy(LanguageChoice::id)
-                .sortedWith(compareBy(LanguageChoice::displayName, LanguageChoice::id))
-        )
+            }
+            .distinctBy(LanguageChoice::id)
+            .sortedWith(compareBy(LanguageChoice::displayName, LanguageChoice::id))
+
+        add(LanguageChoice(id = "", displayName = AdvancedSqlInjectionBundle.message("msg.AdvancedSqlInjection.languagePlaceholder")))
+        if (initialLanguageId.isNotBlank() && registeredChoices.none { it.id == initialLanguageId }) {
+            add(LanguageChoice(id = initialLanguageId, displayName = initialLanguageId, unavailable = true))
+        }
+        addAll(registeredChoices)
     }
 
     private val languageCombo = JComboBox(languageChoices.toTypedArray()).apply {
-        renderer = SimpleListCellRenderer.create { label, value, _ ->
-            label.text = value?.toString().orEmpty()
-        }
+        renderer = textListCellRenderer { value -> value?.toString().orEmpty() }
         selectLanguage(this, initialRule.languageId)
     }
 
@@ -167,6 +179,21 @@ class AdvancedSQLInjectionRuleDialog(
 
     private fun selectedLanguageId(): String =
         (languageCombo.selectedItem as? LanguageChoice)?.id.orEmpty()
+
+    private fun textListCellRenderer(textProvider: (Any?) -> String): ListCellRenderer<Any?> =
+        object : DefaultListCellRenderer() {
+            override fun getListCellRendererComponent(
+                list: JList<*>?,
+                value: Any?,
+                index: Int,
+                isSelected: Boolean,
+                cellHasFocus: Boolean
+            ): Component {
+                val component = super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus)
+                text = textProvider(value)
+                return component
+            }
+        }
 
     private fun selectLanguage(comboBox: JComboBox<LanguageChoice>, languageId: String) {
         val model: ComboBoxModel<LanguageChoice> = comboBox.model

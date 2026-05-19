@@ -5,6 +5,7 @@ import com.queukat.advsqlinjection.model.RuleScope
 import com.queukat.advsqlinjection.model.RuleTargetType
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
@@ -78,6 +79,30 @@ class InjectionRuleMatcherTest {
         )
 
         assertTrue(matches)
+    }
+
+    @Test
+    fun `path pattern with single star matches one config directory level only`() {
+        val rule = pathAwareRule(pathPattern = "config/*.yaml")
+
+        assertTrue(matchesRelativePath(rule, "config/main.yaml"))
+        assertFalse(matchesRelativePath(rule, "config/nested/main.yaml"))
+    }
+
+    @Test
+    fun `path pattern with double star slash matches zero or more directories`() {
+        val rule = pathAwareRule(pathPattern = "config/**/*.yaml")
+
+        assertTrue(matchesRelativePath(rule, "config/main.yaml"))
+        assertTrue(matchesRelativePath(rule, "config/nested/main.yaml"))
+    }
+
+    @Test
+    fun `root double star slash pattern matches root and nested yaml files`() {
+        val rule = pathAwareRule(pathPattern = "**/*.yaml")
+
+        assertTrue(matchesRelativePath(rule, "main.yaml"))
+        assertTrue(matchesRelativePath(rule, "config/nested/main.yaml"))
     }
 
     @Test
@@ -177,5 +202,28 @@ class InjectionRuleMatcherTest {
 
         assertNotNull(plan)
         assertEquals("SQL", plan.rule.languageId)
+    }
+
+    private fun pathAwareRule(pathPattern: String): InjectionRule =
+        InjectionRule(
+            prefix = "sql:",
+            languageId = "SQL",
+            filePattern = "*.yaml",
+            pathPattern = pathPattern,
+            scope = RuleScope.PATH_AWARE,
+            targetType = RuleTargetType.VALUE_STARTS_WITH_PREFIX
+        )
+
+    private fun matchesRelativePath(rule: InjectionRule, relativePath: String): Boolean {
+        val fileName = relativePath.substringAfterLast('/')
+        return InjectionRuleMatcher.matchesFile(
+            rawRule = rule,
+            input = RuleMatchInput(
+                valueText = "",
+                fileName = fileName,
+                fullPath = "/repo/$relativePath",
+                relativePath = relativePath
+            )
+        )
     }
 }

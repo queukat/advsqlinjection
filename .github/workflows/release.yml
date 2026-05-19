@@ -60,7 +60,7 @@ jobs:
           fi
 
       - name: Build, verify, and prepare release notes
-        run: ./gradlew writeReleaseNotes test buildPlugin verifyPlugin runPluginVerifier --console=plain
+        run: ./gradlew -PpluginVerifierMatrix=release writeReleaseNotes test buildPlugin verifyPlugin runPluginVerifier --console=plain
 
       - name: Generate SHA256 checksums
         shell: bash
@@ -91,9 +91,9 @@ jobs:
             build/distributions/SHA256SUMS.txt
 
       - name: Publish to JetBrains Marketplace
-        if: ${{ env.PUBLISH_TOKEN_PLUGIN != '' && env.CERTIFICATE_CHAIN != '' && env.PRIVATE_KEY != '' && env.PRIVATE_KEY_PASSWORD != '' }}
+        if: ${{ env.PUBLISH_TOKEN_PLUGIN != '' }}
         run: ./gradlew publishPlugin --console=plain
 
       - name: Marketplace publish skipped
-        if: ${{ !(env.PUBLISH_TOKEN_PLUGIN != '' && env.CERTIFICATE_CHAIN != '' && env.PRIVATE_KEY != '' && env.PRIVATE_KEY_PASSWORD != '') }}
-        run: echo "Marketplace publish skipped because one or more required secrets are missing. Use PUBLISH_TOKEN_PLUGIN for the JetBrains Marketplace permanent token, not a GitHub token."
+        if: ${{ env.PUBLISH_TOKEN_PLUGIN == '' }}
+        run: echo "Marketplace publish skipped because PUBLISH_TOKEN_PLUGIN is missing. Use the JetBrains Marketplace permanent token, not a GitHub token."

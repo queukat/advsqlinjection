@@ -8,22 +8,21 @@
 [![Downloads](https://img.shields.io/jetbrains/plugin/d/29252)](https://plugins.jetbrains.com/plugin/29252-advanced-language-injection)
 [![Rating](https://img.shields.io/jetbrains/plugin/r/stars/29252)](https://plugins.jetbrains.com/plugin/29252-advanced-language-injection)
 ![Local SonarQube Quality Gate](https://img.shields.io/badge/Local%20SonarQube-Quality%20Gate%20OK-brightgreen)
-![Coverage](https://img.shields.io/badge/Coverage-84.0%25-brightgreen)
+![Coverage](https://img.shields.io/badge/Coverage-84.1%25-brightgreen)
 ![Issues](https://img.shields.io/badge/Issues-0-brightgreen)
 ![Duplications](https://img.shields.io/badge/Duplications-0.0%25-brightgreen)
 
 <details>
-<summary><strong>Local SonarQube quality snapshot</strong> (checked 2026-05-16)</summary>
+<summary><strong>Local SonarQube quality snapshot</strong> (checked 2026-05-19)</summary>
 
 | Metric | Value |
 | --- | --- |
 | Quality Gate | OK |
-| Overall coverage | 84.0% |
-| New-code coverage | Not reported |
-| Overall duplicated lines | 0.0% |
+| Overall coverage | 84.1% |
 | Bugs | 0 |
 | Vulnerabilities | 0 |
 | Code smells | 0 |
+| Overall duplicated lines | 0.0% |
 
 These values are a checked local SonarQube API snapshot, not live cloud badges.
 </details>
@@ -86,10 +85,18 @@ or use `*.y*ml` to cover both `.yaml` and `.yml`.
 ## Installation from source
 
 1. Clone this repository.
-2. Build the plugin distribution archive:
+2. Build the plugin distribution archive.
+
+   Unix:
 
    ```bash
-   ./gradlew.bat buildPlugin --console=plain
+   ./gradlew buildPlugin --console=plain
+   ```
+
+   Windows:
+
+   ```powershell
+   gradlew.bat buildPlugin --console=plain
    ```
 
 3. Install the generated ZIP from `build/distributions` using `Settings | Plugins | gear icon | Install Plugin from Disk`.
@@ -105,26 +112,42 @@ or use `*.y*ml` to cover both `.yaml` and `.yml`.
 
 - Built against IntelliJ IDEA 2022.3
 - Declared compatibility starts at build `223.7571.182`; no explicit upper build bound is set.
+- Local plugin verifier defaults to `IC-2022.3.3` to keep the IDE cache small.
+- Before release, run the named release matrix with `-PpluginVerifierMatrix=release`. It currently checks `IC-2022.3.3`, `IC-2024.3.6`, `IU-2025.3`, and `IU-2026.1.2`.
+- For one-off checks, override the matrix with `-PpluginVerifierIdeVersions=...` or `PLUGIN_VERIFIER_IDE_VERSIONS`.
 
 ## Development checks
 
-- `./gradlew.bat test --console=plain`
-- `./gradlew.bat buildSearchableOptions --console=plain`
-- `./gradlew.bat buildPlugin --console=plain`
-- `./gradlew.bat verifyPlugin --console=plain`
-- `./gradlew.bat runPluginVerifier --console=plain`
+Unix:
+
+```bash
+./gradlew test buildPlugin verifyPlugin --console=plain
+./gradlew runPluginVerifier --console=plain
+./gradlew runPluginVerifier -PpluginVerifierMatrix=release --console=plain
+```
+
+Windows:
+
+```powershell
+gradlew.bat test buildPlugin verifyPlugin --console=plain
+gradlew.bat runPluginVerifier --console=plain
+gradlew.bat runPluginVerifier "-PpluginVerifierMatrix=release" --console=plain
+```
 
 ## CI and release automation
 
 - GitHub Actions CI runs on every push to `main` and on pull requests via [`ci.yml`](.github/workflows/ci.yml).
 - CI runs `test`, `buildPlugin`, and `verifyPlugin`, then uploads the built plugin ZIP as an artifact.
 - GitHub Releases are created from tags like `v1.1.1` via [`release.yml`](.github/workflows/release.yml).
-- Release builds also run `runPluginVerifier`, attach the ZIP and `SHA256SUMS.txt`, and optionally publish to JetBrains Marketplace if the required secrets are configured.
+- Release builds also run `runPluginVerifier` with `-PpluginVerifierMatrix=release`, attach the ZIP and `SHA256SUMS.txt`, and optionally publish to JetBrains Marketplace if the required secrets are configured.
 - `CHANGELOG.md` is the single source of truth for release notes. The release workflow uses it for GitHub Releases, and `patchPluginXml` uses the same version section for JetBrains Marketplace change notes.
 
 ### Required GitHub secrets for Marketplace publishing
 
 - `PUBLISH_TOKEN_PLUGIN` - JetBrains Marketplace permanent token (`perm-...`), not a GitHub token. Store the token exactly as Marketplace shows it; do not add a `perm:` prefix.
+
+Plugin signing variables are optional and are only needed when running the `signPlugin` task explicitly:
+
 - `CERTIFICATE_CHAIN`
 - `PRIVATE_KEY`
 - `PRIVATE_KEY_PASSWORD`
@@ -133,6 +156,13 @@ For local uploads on Windows, set the same Marketplace token with:
 
 ```powershell
 [Environment]::SetEnvironmentVariable("PUBLISH_TOKEN_PLUGIN", "perm-...", "User")
+```
+
+Then run:
+
+```powershell
+gradlew.bat buildPlugin --console=plain
+gradlew.bat publishPlugin --console=plain
 ```
 
 ## Localization

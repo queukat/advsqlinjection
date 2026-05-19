@@ -1,3 +1,7 @@
+# Historical Note
+
+This document is preserved as release-history context for the 1.1.1 stabilization work. It is not a current product plan or live audit.
+
 # Fix Plan
 
 ## Context

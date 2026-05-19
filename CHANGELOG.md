@@ -2,6 +2,30 @@
 
 All notable changes to this project should be documented in this file.
 
+## [1.1.2] - 2026-05-20
+
+### Added
+
+- Structured current-file rule preview with copyable diagnostics, matched file/host/segment counts, example values, unavailable-language reporting, and truncation messaging.
+- End-to-end fixture coverage for real injected PSI in YAML, JSON, Properties, and YAML block scalar values.
+- Focused tests for common glob semantics, unavailable language preservation, and legacy migration compatibility.
+- Named plugin verifier matrices so local checks can stay lightweight while release checks cover representative IDE branches.
+
+### Changed
+
+- Rule preview now runs PSI work through non-blocking read actions with committed documents, cancellation checks, a panel-scoped lifecycle, and safer preview button re-enabling.
+- File glob matching now treats `**/` as zero or more directories for user-friendly patterns such as `config/**/*.yaml` and `**/*.yaml`.
+- New rules start with no hidden default language; SQL remains available only through the explicit SQL example preset.
+- Settings apply now refreshes editor highlighting so open files reflect changed injection rules immediately.
+- Repository documentation now separates local baseline verification from the broader release verifier matrix.
+
+### Fixed
+
+- Preserved unavailable language IDs while editing existing rules instead of falling back to a placeholder.
+- Kept legacy omitted SQL language migration behavior for older persisted rules while moving new-rule defaults to a neutral language selection.
+- Cleaned repository hygiene issues including duplicate `.gitignore` content, unused Gradle catalog/repository entries, and misplaced Gradle wrapper properties.
+- Moved historical fix-plan notes out of the active docs surface and removed private audit material from the product repository.
+
 ## [1.1.1] - 2026-05-03
 
 ### Added
